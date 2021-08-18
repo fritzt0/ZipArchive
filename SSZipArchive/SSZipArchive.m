@@ -822,6 +822,11 @@ static bool filenameIsDirectory(const char *filename, uint16_t size)
 
 + (BOOL)createZipFileAtPath:(NSString *)path withFilesAtPaths:(NSArray<NSString *> *)paths withPassword:(NSString *)password progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
 {
+    return [SSZipArchive createZipFileAtPath:path withFilesAtPaths:paths withPassword:password progressHandler:progressHandler shouldStop:nil];
+}
+
++ (BOOL)createZipFileAtPath:(NSString *)path withFilesAtPaths:(NSArray<NSString *> *)paths withPassword:(NSString *)password progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler shouldStop:(BOOL(^ _Nullable)(void))shouldStop;
+{
     SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
     BOOL success = [zipArchive open];
     if (success) {
@@ -843,6 +848,7 @@ static bool filenameIsDirectory(const char *filename, uint16_t size)
                 complete++;
                 progressHandler(complete, total);
             }
+            if (shouldStop && shouldStop()) break;
         }
         success &= [zipArchive close];
     }
