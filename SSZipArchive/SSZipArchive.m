@@ -807,6 +807,11 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
 
 + (BOOL)createZipFileAtPath:(NSString *)path withFilesAtPaths:(NSArray<NSString *> *)paths withPassword:(NSString *)password progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
 {
+    return [SSZipArchive createZipFileAtPath:path withFilesAtPaths:paths withPassword:password progressHandler:progressHandler shouldStop:nil];
+}
+
++ (BOOL)createZipFileAtPath:(NSString *)path withFilesAtPaths:(NSArray<NSString *> *)paths withPassword:(NSString *)password progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler shouldStop:(BOOL(^ _Nullable)(void))shouldStop;
+{
     SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
     BOOL success = [zipArchive open];
     if (success) {
@@ -817,6 +822,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                 complete++;
                 progressHandler(complete, total);
             }
+            if (shouldStop && shouldStop()) break;
         }
         success &= [zipArchive close];
     }
