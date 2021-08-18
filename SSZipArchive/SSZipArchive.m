@@ -822,7 +822,10 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                 complete++;
                 progressHandler(complete, total);
             }
-            if (shouldStop && shouldStop()) break;
+            if (shouldStop && shouldStop()) {
+                success = false;
+                break;
+            }
         }
         success &= [zipArchive close];
     }
@@ -917,7 +920,10 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                 complete++;
                 progressHandler(complete, total);
             }
-            if (shouldStop && shouldStop()) break;
+            if (shouldStop && shouldStop()) {
+                success = false;
+                break;
+            }
         }
         success &= [zipArchive close];
     }
