@@ -848,7 +848,10 @@ static bool filenameIsDirectory(const char *filename, uint16_t size)
                 complete++;
                 progressHandler(complete, total);
             }
-            if (shouldStop && shouldStop()) break;
+            if (shouldStop && shouldStop()) {
+                success = false;
+                break;
+            }
         }
         success &= [zipArchive close];
     }
@@ -950,7 +953,10 @@ static bool filenameIsDirectory(const char *filename, uint16_t size)
                 complete++;
                 progressHandler(complete, total);
             }
-            if (shouldStop && shouldStop()) break;
+            if (shouldStop && shouldStop()) {
+                success = false;
+                break;
+            }
         }
         success &= [zipArchive close];
     }
