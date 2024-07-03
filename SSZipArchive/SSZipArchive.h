@@ -145,7 +145,7 @@ typedef NS_ENUM(NSInteger, SSZipArchiveErrorCode) {
 
  - Parameters:
    - url: The URL where the zip file will be created.
-   - items: An array of `NSURL` objects representing the items to be zipped.
+   - items: An array of `NSURL` objects representing the items to be zipped. Empty directories are not stored. The name of the item itself is kept if it refers to a directory.
    - compressionLevel: The level of compression to apply (0...9). Use (-1) for default compression.
    - password: An optional password to encrypt the zip file.
    - aes: A Boolean value indicating whether to use WinZIP AES encryption (`YES`) or the traditional PKWARE encryption (`NO`).
