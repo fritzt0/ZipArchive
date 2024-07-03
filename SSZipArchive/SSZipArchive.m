@@ -971,62 +971,89 @@ static bool filenameIsDirectory(const char *filename, uint16_t size)
            progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
                 shouldStop:(BOOL(^ _Nullable)(void))shouldStop {
   SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath: url.path];
-  BOOL success = [zipArchive open];
+  __block BOOL success = [zipArchive open];
   if (success) {
     // use a local fileManager (queue/thread compatibility)
     NSFileManager *fileManager = [[NSFileManager alloc] init];
-    NSUInteger total = items.count, complete = 0;
+
+    NSMutableDictionary<NSURL *, NSArray<NSURL *> *> *itemDict = [[NSMutableDictionary alloc] initWithCapacity:items.count];
+    NSUInteger total = 0;
+    __block NSUInteger complete = 0;
+
+    NSNumber *isDir;
     for (NSURL *itemURL in items) {
       if ([itemURL isEqual:url]) {
         NSLog(@"[SSZipArchive] the archive url and the file url: %@ are the same, which is forbidden.", itemURL);
         continue;
       }
 
-      BOOL isDir;
-      [fileManager fileExistsAtPath:itemURL.path isDirectory:&isDir];
-
-      if (isDir) {
-        NSDirectoryEnumerator<NSURL *> *enumerator = [fileManager enumeratorAtURL:itemURL
-                                                       includingPropertiesForKeys:@[NSURLIsDirectoryKey]
-                                                                          options:NSDirectoryEnumerationProducesRelativePathURLs
-                                                                     errorHandler:nil];
-        NSArray<NSURL *> *items = enumerator.allObjects;
-        for (NSURL *relItemURL in items) {
-          if (shouldStop && shouldStop()) {
-            success = false;
-            break;
-          }
-
-          NSURL *fileURL = [itemURL URLByAppendingPathComponent:relItemURL.relativePath];
-
-          NSNumber *isDir;
-          if ([fileURL getResourceValue:&isDir forKey:NSURLIsDirectoryKey error:nil] == YES && isDir.boolValue == NO) {
-            success &= [zipArchive writeFileAtPath:fileURL.path
-                                      withFileName:[itemURL.lastPathComponent stringByAppendingPathComponent:relItemURL.relativePath]
-                                  compressionLevel:compressionLevel
-                                          password:password
-                                               AES:aes];
-          }
-        }
-      } else {
-        // file
-        success &= [zipArchive writeFileAtPath:itemURL.path 
-                                  withFileName:itemURL.lastPathComponent
-                              compressionLevel:compressionLevel
-                                      password:password
-                                           AES:aes];
-      }
-      if (!success) break;
-
-      if (progressHandler) {
-        complete++;
-        progressHandler(complete, total);
-      }
       if (shouldStop && shouldStop()) {
         success = false;
         break;
       }
+
+      if ([itemURL getResourceValue:&isDir forKey:NSURLIsDirectoryKey error:nil] == YES && isDir.boolValue == YES) {
+        // directory
+        NSDirectoryEnumerator<NSURL *> *enumerator = [fileManager enumeratorAtURL:itemURL
+                                                       includingPropertiesForKeys:@[NSURLIsDirectoryKey]
+                                                                          options:NSDirectoryEnumerationProducesRelativePathURLs
+                                                                     errorHandler:nil];
+        NSArray<NSURL *> *collection = enumerator.allObjects;
+        itemDict[itemURL] = collection;
+        total += collection.count;
+      } else {
+        // file
+        itemDict[itemURL] = @[];
+        total += 1;
+      }
     }
+
+    if (success) {
+      [itemDict enumerateKeysAndObjectsUsingBlock:^(NSURL *itemURL, NSArray<NSURL *> *collection, BOOL *stop) {
+        if (collection.count > 0) {
+          // directory
+          for (NSURL *fileURL in collection) {
+            if (shouldStop && shouldStop()) {
+              success = false;
+              *stop = YES;
+              break;
+            }
+
+            NSNumber *isDir;
+            if ([fileURL getResourceValue:&isDir forKey:NSURLIsDirectoryKey error:nil] == YES && isDir.boolValue == NO) {
+              success &= [zipArchive writeFileAtPath:fileURL.path
+                                        withFileName:[itemURL.lastPathComponent stringByAppendingPathComponent:fileURL.relativePath]
+                                    compressionLevel:compressionLevel
+                                            password:password
+                                                 AES:aes];
+            }
+
+            if (progressHandler) {
+              complete++;
+              progressHandler(complete, total);
+            }
+          }
+        } else {
+          // file
+          if (shouldStop && shouldStop()) {
+            success = false;
+            *stop = YES;
+          }
+
+          success &= [zipArchive writeFileAtPath:itemURL.path
+                                    withFileName:itemURL.lastPathComponent
+                                compressionLevel:compressionLevel
+                                        password:password
+                                             AES:aes];
+
+          if (progressHandler) {
+            complete++;
+            progressHandler(complete, total);
+          }
+        }
+      }];
+    }
+    
     success &= [zipArchive close];
   }
   return success;
