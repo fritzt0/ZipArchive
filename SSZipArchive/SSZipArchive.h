@@ -139,6 +139,29 @@ typedef NS_ENUM(NSInteger, SSZipArchiveErrorCode) {
                         AES:(BOOL)aes
             progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
                  shouldStop:(BOOL(^ _Nullable)(void))shouldStop;
+
+/**
+ Creates a zip archive at the specified URL with the provided items.
+
+ - Parameters:
+   - url: The URL where the zip file will be created.
+   - items: An array of `NSURL` objects representing the items to be zipped.
+   - compressionLevel: The level of compression to apply (0...9). Use (-1) for default compression.
+   - password: An optional password to encrypt the zip file.
+   - aes: A Boolean value indicating whether to use WinZIP AES encryption (`YES`) or the traditional PKWARE encryption (`NO`).
+   - progressHandler: An optional block that reports the progress of zipping. The block takes two parameters: `entryNumber` and `total`.
+   - shouldStop: An optional block that determines whether the process should stop. Return `YES` to cancel further processing.
+
+ - Returns: A Boolean value indicating whether the zip archive was successfully created.
+ */
++ (BOOL)createZipFileAtURL:(NSURL *)url
+           withItemsAtURLs:(NSArray<NSURL *> *)items
+          compressionLevel:(int)compressionLevel
+                  password:(nullable NSString *)password
+                       AES:(BOOL)aes
+           progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
+                shouldStop:(BOOL(^ _Nullable)(void))shouldStop;
+
 //suport symlink compress --file
 + (BOOL)createZipFileAtPath:(NSString *)path withFilesAtPaths:(NSArray<NSString *> *)paths withPassword:(nullable NSString *)password keepSymlinks:(BOOL)keeplinks;
 //suport symlink compress --directory
